@@ -68,12 +68,19 @@ class UsersWithoutLogin(Resource):
     def get(self):
         return make_response(render_template('login.html'))
     def post(self):
+        parse.add_argument('signup',type=bool,location='json')
         args = parse.parse_args()
-        user = User.query_by_username(args['username'])
         # user = User.query.filter_by(username=args['username']).first()
-        if user is not None and user.verify_pwd(args['pwd']):
-            login_user(user, True)
-            return make_response(marshal(user, user_field))
+        if not args['signup']:
+            user = User.query_by_username(args['username'])
+            if user is not None :
+                if user.verify_pwd(args['pwd']):
+                    login_user(user, True)
+                    return make_response(marshal(user, user_field))
+                else:
+                    return "wrong pwd"
+            else:
+                return "Please SignUp"
         else:
            if User.adduser(args):
                return "注册成功，请登录"
