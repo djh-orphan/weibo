@@ -65,39 +65,54 @@ def load_user(user_id):
 #         return redirect(url_for('login.login'))
 
 class UsersWithoutLogin(Resource):
-    def get(self):
-        return make_response(render_template('login.html'))
+
     def post(self):
-        parse.add_argument('signup',type=bool,location='json')
+        parse.add_argument('signup', type=bool, location='json')
         args = parse.parse_args()
-        # user = User.query.filter_by(username=args['username']).first()
         if not args['signup']:
-            user = User.query_by_username(args['username'])
-            if user is not None :
-                if user.verify_pwd(args['pwd']):
-                    login_user(user, True)
-                    return make_response(marshal(user, user_field))
-                else:
-                    return "wrong pwd"
+            try:
+                user = User.query_by_username(args['username'])
+            except Exception as error:
+                return {"work": False, "message": str(error.args)}
             else:
-                return "Please SignUp"
+                if user is not None:
+                    if user.verify_pwd(args['pwd']):
+                        login_user(user, True)
+                        rep = marshal(user, user_field, envelope="data")
+                        rep["work"] = True
+                        return rep
+                    else:
+                        return {"message": "wrong pwd", "work": False}
+                else:
+                    return {"message": "please signup", "work": False}
         else:
-           if User.adduser(args):
-               return "注册成功，请登录"
-           else:
-               return "注册失败"
+            try:
+                res=User.adduser(args)
+            except Exception as error:
+                return {"message": str(error.args), "work": False}
+            else:
+                if res:
+                    return {"message": "signup successful", "work": True}
+                else:
+                    return {"message": "user already exists", "work": False}
+
 
 class UsersWithLogin(Resource):
     @login_required
     def post(self):
         args = parse.parse_args()
-        if User.resetpwd(args):
-            logout_user()
-            return "重置成功，请重新登录"
+        try:
+            res = User.resetpwd(args)
+        except Exception as error:
+            return {"message": str(error.args), "work": False}
         else:
-            return "重置失败，请重试"
+            if res:
+                logout_user()
+                return {"message": "reset successful", "work": True}
+            else:
+                return {"message": "failed to reset", "work": False}
 
     @login_required
     def get(self):
         logout_user()
-        return "登出成功"
+        return {"message": "logout successful", "work": True}
