@@ -348,7 +348,7 @@ class Comments(Resource):
 
     @login_required
     def post(self, message_id, comment_id=None):
-        parse.add_argument("comment_info", type=str, location='json', required=True)
+        parse.add_argument("comment_info", type=str, location='json')
         args = parse.parse_args()
         try:
             new_comment = Comm(comment_info=args["comment_info"], user_id=current_user.id, message_id=message_id)
